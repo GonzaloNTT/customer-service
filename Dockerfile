@@ -1,16 +1,15 @@
-# Etapa 1: Build
-FROM maven:3.9.4-eclipse-temurin-17 AS builder
+# ===============================
+# 🏗️ Etapa 1: Build
+# ===============================
+FROM maven:3.9.4-eclipse-temurin-21 AS builder
 WORKDIR /app
 
-# Copiar pom.xml y src
+# Copiar POM y dependencias primero (para aprovechar la cache de Docker)
 COPY pom.xml .
-COPY src ./src
 COPY checkstyle.xml .
-
-# Copiar el JAR de schemas-avro al contenedor
 COPY libs/schemas-avro-1.0.0.jar /tmp/schemas-avro-1.0.0.jar
 
-# Instalarlo en el repositorio Maven local
+# Instalar el JAR local en el repo Maven
 RUN mvn install:install-file \
     -Dfile=/tmp/schemas-avro-1.0.0.jar \
     -DgroupId=com.bootcamp \
@@ -18,15 +17,27 @@ RUN mvn install:install-file \
     -Dversion=1.0.0 \
     -Dpackaging=jar
 
-# Verifica que esté donde esperas
-RUN ls -l /tmp
+# Descargar dependencias antes de copiar src (mejor cacheo)
+RUN mvn dependency:go-offline
 
-# Construir microservicio sin tests
+# Copiar el código fuente
+COPY src ./src
+
+# Compilar sin tests
 RUN mvn clean package -DskipTests
 
-# Etapa 2: Runtime
-FROM eclipse-temurin:17-jdk
+
+# ===============================
+# 🚀 Etapa 2: Runtime
+# ===============================
+FROM eclipse-temurin:21-jre
 WORKDIR /app
+
+# Copiar el JAR compilado
 COPY --from=builder /app/target/*.jar app.jar
+
+# Exponer el puerto del microservicio
 EXPOSE 8080
+
+# Ejecutar la aplicación
 ENTRYPOINT ["java", "-jar", "app.jar"]
