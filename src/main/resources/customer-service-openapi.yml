@@ -1,294 +1,342 @@
 openapi: 3.0.3
 info:
   title: Customer Service API
-  description: API para la gestión de clientes, no-clientes y consulta de productos asociados en el sistema bancario.
+  description: API REST para gestión de clientes naturales, jurídicos y no clientes.
   version: 1.0.0
-servers:
-  - url: http://localhost:8081/api/v1
-    description: Entorno local de desarrollo
+  contact:
+    name: Bootcamp Backend Team
+    email: support@bootcamp.io
 
-tags:
-  - name: Customers
-    description: Operaciones CRUD para clientes
-  - name: NonCustomers
-    description: Gestión de no-clientes (Yanki, BootCoin)
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Servidor local de desarrollo
 
 paths:
-  /customers:
+
+  /cliente/natural:
     post:
-      tags: [Customers]
-      summary: Crear cliente personal o empresarial
+      summary: Crear un cliente natural
+      operationId: crearClienteNatural
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerCreateRequest'
+              $ref: '#/components/schemas/ClienteNaturalRequest'
+            example:
+              id: "c123"
+              usuario:
+                documento:
+                  tipoDocumento: DNI
+                  numeroDocumento: "87654321"
+                telefono:
+                  numero: "+51999999999"
+                  imei: "A1B2C3D4E5F6"
+                email: "juan.perez@example.com"
+              tipo: REGULAR
       responses:
         '201':
-          description: Cliente creado correctamente
+          description: Cliente natural creado exitosamente
+        '400':
+          description: Datos inválidos
+    get:
+      summary: Listar todos los clientes naturales
+      operationId: listarClientesNaturales
+      responses:
+        '200':
+          description: Lista de clientes naturales
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClienteNaturalRequest'
+
+  /cliente/natural/{id}:
     get:
-      tags: [Customers]
-      summary: Listar todos los clientes
+      summary: Obtener cliente natural por ID
       parameters:
-        - in: query
-          name: type
+        - name: id
+          in: path
+          required: true
           schema:
             type: string
-            enum: [PERSONAL, BUSINESS]
-          description: Filtrar por tipo de cliente
       responses:
         '200':
-          description: Lista de clientes
+          description: Cliente natural encontrado
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CustomerResponse'
-
-  /customers/{id}:
-    get:
-      tags: [Customers]
-      summary: Obtener detalles de un cliente por ID
-      parameters:
-        - $ref: '#/components/parameters/CustomerIdParam'
-      responses:
-        '200':
-          description: Datos del cliente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustomerResponse'
+                $ref: '#/components/schemas/ClienteNaturalRequest'
         '404':
-          description: Cliente no encontrado
+          description: Cliente natural no encontrado
     put:
-      tags: [Customers]
-      summary: Actualizar información de un cliente
+      summary: Actualizar un cliente natural existente
       parameters:
-        - $ref: '#/components/parameters/CustomerIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerUpdateRequest'
+              $ref: '#/components/schemas/ClienteNaturalRequest'
       responses:
         '200':
-          description: Cliente actualizado correctamente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustomerResponse'
+          description: Cliente natural actualizado
     delete:
-      tags: [Customers]
-      summary: Eliminar un cliente
+      summary: Eliminar cliente natural por ID
       parameters:
-        - $ref: '#/components/parameters/CustomerIdParam'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '204':
-          description: Cliente eliminado correctamente
+          description: Cliente natural eliminado
 
-  /customers/{id}/products:
-    get:
-      tags: [Customers]
-      summary: Consultar productos asociados a un cliente
-      parameters:
-        - $ref: '#/components/parameters/CustomerIdParam'
-      responses:
-        '200':
-          description: Lista de productos asociados
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductReference'
-        '404':
-          description: Cliente no encontrado
-
-  /non-customers:
+  /cliente/juridico:
     post:
-      tags: [NonCustomers]
-      summary: Registrar un no-cliente (Yanki, BootCoin)
+      summary: Crear cliente jurídico
+      operationId: crearClienteJuridico
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NonCustomerCreateRequest'
+              $ref: '#/components/schemas/ClienteJuridicoRequest'
+            example:
+              representantes: ["rep1", "rep2"]
+              tipo: "SOCIEDAD_ANONIMA"
       responses:
         '201':
-          description: No-cliente creado correctamente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NonCustomerResponse'
-
-  /non-customers/{id}:
+          description: Cliente jurídico creado
+        '400':
+          description: Datos inválidos
     get:
-      tags: [NonCustomers]
-      summary: Obtener datos de un no-cliente
-      parameters:
-        - $ref: '#/components/parameters/NonCustomerIdParam'
+      summary: Listar todos los clientes jurídicos
+      operationId: listarClientesJuridicos
       responses:
         '200':
-          description: Datos del no-cliente
+          description: Lista de clientes jurídicos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NonCustomerResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClienteJuridicoRequest'
+
+  /cliente/juridico/{id}:
+    get:
+      summary: Obtener cliente jurídico por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cliente jurídico encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteJuridicoRequest'
         '404':
-          description: No-cliente no encontrado
+          description: Cliente jurídico no encontrado
+    put:
+      summary: Actualizar cliente jurídico existente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteJuridicoRequest'
+      responses:
+        '200':
+          description: Cliente jurídico actualizado
+    delete:
+      summary: Eliminar cliente jurídico por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Cliente jurídico eliminado
+
+  /nocliente:
+    post:
+      summary: Crear un no cliente
+      operationId: crearNoCliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoClienteRequest'
+            example:
+              id: "n123"
+              usuario:
+                documento:
+                  tipoDocumento: DNI
+                  numeroDocumento: "99999999"
+                telefono:
+                  numero: "+51911111111"
+                  imei: "Z9Y8X7W6"
+                email: "anonimo@example.com"
+      responses:
+        '201':
+          description: No cliente creado
+        '400':
+          description: Datos inválidos
+    get:
+      summary: Listar todos los no clientes
+      operationId: listarNoClientes
+      responses:
+        '200':
+          description: Lista de no clientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NoClienteRequest'
+
+  /nocliente/{id}:
+    get:
+      summary: Obtener no cliente por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: No cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoClienteRequest'
+        '404':
+          description: No cliente no encontrado
+    put:
+      summary: Actualizar no cliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoClienteRequest'
+      responses:
+        '200':
+          description: No cliente actualizado
+    delete:
+      summary: Eliminar no cliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No cliente eliminado
 
 components:
-  parameters:
-    CustomerIdParam:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-      description: Identificador único del cliente
-    NonCustomerIdParam:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-      description: Identificador único del no-cliente
-
   schemas:
-    CustomerCreateRequest:
+    ClienteJuridicoRequest:
       type: object
-      required:
-        - name
-        - documentType
-        - documentNumber
-        - customerType
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        imei:
-          type: string
-        documentType:
-          type: string
-          enum: [DNI, CEX, PASSPORT]
-        documentNumber:
-          type: string
-        customerType:
-          type: string
-          enum: [PERSONAL, BUSINESS]
-        personalType:
-          type: string
-          enum: [STANDARD, VIP]
-          description: Solo para tipo PERSONAL. VIP requiere tener tarjeta de crédito.
-        businessType:
-          type: string
-          enum: [STANDARD, PYME]
-          description: Solo para tipo BUSINESS. PYME requiere tener tarjeta de crédito para abrir cuenta corriente PYME.
-    CustomerUpdateRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-    CustomerResponse:
-      type: object
+      required: [id, representantes, tipo, nombreComercial]
       properties:
         id:
           type: string
-        name:
+          example: "j123"
+        representantes:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        tipo:
           type: string
-        email:
+          example: "NORMAL"
+        nombreComercial:
           type: string
-        phone:
-          type: string
-        documentType:
-          type: string
-        documentNumber:
-          type: string
-        customerType:
-          type: string
-        personalType:
-          type: string
-        businessType:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
+          example: "Empresa XYZ"
 
-    ProductReference:
+    ClienteNaturalRequest:
       type: object
-      properties:
-        productId:
-          type: string
-        productType:
-          type: string
-          enum: [BankAccount, CreditCard, CreditPersonal, CreditCorporate, BootCoinWallet]
-        alias:
-          type: string
-        status:
-          type: string
-          enum: [ACTIVE, INACTIVE]
-
-    NonCustomerCreateRequest:
-      type: object
-      required:
-        - name
-        - documentType
-        - documentNumber
-        - phone
-        - email
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-        phone:
-          type: string
-        documentType:
-          type: string
-          enum: [DNI, CEX, PASSPORT]
-        documentNumber:
-          type: string
-        imei:
-          type: string
-          description: Requerido solo para Yanki
-        productType:
-          type: string
-          enum: [YANKI, BOOTCOIN]
-    NonCustomerResponse:
-      type: object
+      required: [id, usuario, tipo]
       properties:
         id:
           type: string
-        name:
+          example: "c123"
+        usuario:
+          $ref: '#/components/schemas/DatosUsuario'
+        tipo:
           type: string
+          example: "REGULAR"
+
+    NoClienteRequest:
+      type: object
+      required: [id, usuario]
+      properties:
+        id:
+          type: string
+          example: "n123"
+        usuario:
+          $ref: '#/components/schemas/DatosUsuario'
+
+    DatosUsuario:
+      type: object
+      required: [documento, telefono, email]
+      properties:
+        documento:
+          $ref: '#/components/schemas/Documento'
+        telefono:
+          $ref: '#/components/schemas/Telefono'
         email:
           type: string
-        phone:
+          format: email
+          example: "correo@example.com"
+
+    Documento:
+      type: object
+      required: [tipoDocumento, numeroDocumento]
+      properties:
+        tipoDocumento:
           type: string
-        documentType:
+          example: "DNI"
+        numeroDocumento:
           type: string
-        documentNumber:
+          example: "12345678"
+
+    Telefono:
+      type: object
+      required: [numero, imei]
+      properties:
+        numero:
           type: string
-        productType:
+          example: "+51987654321"
+        imei:
           type: string
-        createdAt:
-          type: string
-          format: date-time
+          example: "A1B2C3D4E5F6"

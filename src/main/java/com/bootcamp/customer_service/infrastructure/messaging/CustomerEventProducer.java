@@ -1,6 +1,6 @@
 package com.bootcamp.customer_service.infrastructure.messaging;
 
-import com.bootcamp.customer_service.application.port.out.CustomerEventPublisherPort;
+import com.bootcamp.customer_service.application.port.out.event.CustomerEventPublisherPort;
 import com.bootcamp.customer_service.events.CustomerCreatedEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;

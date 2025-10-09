@@ -2,9 +2,7 @@ package com.bootcamp.customer_service.infrastructure.messaging;
 
 import com.bootcamp.customer_service.application.port.in.CustomerEventListenerPort;
 import com.bootcamp.customer_service.events.CustomerCreatedEvent;
-import com.bootcamp.customer_service.events.CustomerUpdatedEvent;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
