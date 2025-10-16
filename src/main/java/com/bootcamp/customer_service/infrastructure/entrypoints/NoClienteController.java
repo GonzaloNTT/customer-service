@@ -38,7 +38,7 @@ public class NoClienteController implements NoclienteApi {
         log.debug("POST /nocliente/");
         return noClienteRequest
                 .flatMap(request -> {
-                    var command = CommandMapper.toCommand(request);
+                    var command = CommandMapper.NO_CLIENTE_TO_COMMAND.apply(request);
                     return noClienteService.registrarNoCliente(command)
                             .then(Mono.just(ResponseEntity
                                     .created(URI.create("/api/v1/cliente/natural/" + command.id()))
@@ -59,7 +59,7 @@ public class NoClienteController implements NoclienteApi {
         log.debug("GET /nocliente/");
 
         Flux<NoClienteRequest> noClientesFlux = noClienteService.obtenerTodosNoClientes()
-                .map(CommandMapper::toResponse)
+                .map(CommandMapper.NO_CLIENTE_TO_RESPONSE)
                 .doOnError(ex -> log.error("Error mapping ClienteJuridico", ex));
 
         return noClientesFlux.hasElements()
@@ -88,7 +88,7 @@ public class NoClienteController implements NoclienteApi {
     public Mono<ResponseEntity<NoClienteRequest>> noclienteIdGet(String id,  final ServerWebExchange exchange) {
         log.debug("getById Request={}", id);
         return noClienteService.obtenerNoClientePorId(id)
-                .map(CommandMapper::toResponse)
+                .map(CommandMapper.NO_CLIENTE_TO_RESPONSE)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build())
                 .doOnError(ex -> log.error("Error fetching customer by id {}", id, ex));
@@ -104,7 +104,7 @@ public class NoClienteController implements NoclienteApi {
 
         return noClienteRequest
                 .flatMap(request -> {
-                    return noClienteService.actualizarNoCliente(id, CommandMapper.toCommand(request))
+                    return noClienteService.actualizarNoCliente(id, CommandMapper.NO_CLIENTE_TO_COMMAND.apply(request))
                             .then(Mono.just(ResponseEntity.noContent().<Void>build()));
                 })
                 .onErrorResume(ex -> {

@@ -1,16 +1,54 @@
 server:
-  port: 0  # Permite que el puerto se asigne automáticamente
+  port: 8082
 
 spring:
   application:
     name: customer-service
-  config:
-    import: optional:configserver:http://config-server:8888  # ✅ <--- CAMBIO CLAVE: antes decía localhost
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    #  import: optional:configserver:http://config-server:8888
   webflux:
     base-path: /api/v1
+  kafka:
+    bootstrap-servers: kafka:29092
+    properties:
+      schema.registry.url: http://schema-registry:8081
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    consumer:
+      group-id: customer-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        specific.avro.reader: true
 
-kafka:
-  topics:
-    customerCreated: customer-created
-  groups:
-    customerService: customer-service-group
+  data:
+    mongodb:
+      uri: mongodb+srv://xaleons72_db_user:YKJLPRL4giDOswys@cluster0.bst1l3t.mongodb.net/customerDB?retryWrites=true&w=majority&appName=Cluster0
+    redis:
+      host: redis
+      port: 6379
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://admin:admin@eureka-server:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+    healthcheck:
+      enabled: true
+    retry:
+      max-attempts: 10
+      initial-interval: 2000
+      multiplier: 1.5
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping: TRACE
+    org.springframework.web.reactive.handler.SimpleUrlHandlerMapping: TRACE
+    org.springframework.boot.autoconfigure.web: DEBUG

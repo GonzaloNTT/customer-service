@@ -15,7 +15,7 @@ public class CustomerEventConsumer {
         this.customerEventListenerPort = customerEventListenerPort;
     }
 
-    @KafkaListener(topics = "${kafka.topics.customerCreated}", groupId = "${kafka.groups.customerService}")
+    @KafkaListener(topics = "customer-created", groupId = "customer-service-group")
     public void listen(CustomerCreatedEvent event) {
         try {
             customerEventListenerPort.listen("Customer created: " + event.getCustomerId());

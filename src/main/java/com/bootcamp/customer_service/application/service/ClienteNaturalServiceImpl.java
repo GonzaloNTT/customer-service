@@ -17,6 +17,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 @Service
 @Slf4j
@@ -35,6 +37,7 @@ public class ClienteNaturalServiceImpl implements ClienteNaturalService {
         this.eventPublisher = eventPublisher;
         this.clienteNaturalOrquestador = clienteNaturalOrquestador;
     }
+
 
 
     @Override
@@ -79,13 +82,20 @@ public class ClienteNaturalServiceImpl implements ClienteNaturalService {
                 );
     }
 
+
     @Override
-    public Flux<ClienteNatural> obtenerTodosClientesNaturales() {
-        log.info("Obteniendo todos los clientes naturals");
+    public Flux<ClienteNatural> obtenerClientesNaturales(Optional<TipoClienteNatural> type) {
+        log.info("Obteniendo clientes naturales{}", type.map(t -> " con tipo " + t).orElse(""));
+
+        Predicate<ClienteNatural> filtroPorTipo = c -> type.map(t -> c.getTipo() == t).orElse(true);
+
         return clienteNaturalRepositoryPort.findAll()
-                .filter(c -> c instanceof ClienteNatural)
-                .cast(ClienteNatural.class);
+                .filter(ClienteNatural.class::isInstance)
+                .cast(ClienteNatural.class)
+                .filter(filtroPorTipo); // aplicamos
     }
+
+
 
     @Override
     public Mono<Void> actualizarClienteNatural(String id, ClienteNaturalCommand clienteNaturalCommand) {

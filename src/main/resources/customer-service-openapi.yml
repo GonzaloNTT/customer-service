@@ -40,11 +40,19 @@ paths:
         '400':
           description: Datos inválidos
     get:
-      summary: Listar todos los clientes naturales
+      summary: Listar clientes naturales
       operationId: listarClientesNaturales
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [ NORMAL, VIP, REGULAR ]
+          required: false
+          description: Filtra por tipo de cliente natural (opcional)
       responses:
         '200':
-          description: Lista de clientes naturales
+          description: Lista de clientes naturales filtrados opcionalmente
           content:
             application/json:
               schema:

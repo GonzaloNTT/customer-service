@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -39,34 +40,43 @@ public class ClienteJuridicoServiceImpl implements ClienteJuridicoService {
     @Override
     public Mono<String> registrarClienteJuridico(ClienteJuridicoCommand command) {
         log.debug("Registrando cliente jurídico: {}", command.nombreComercial());
-        
 
+        // 1️⃣ Validar si ya existe un cliente jurídico con ese nombre comercial
         Mono<Void> validarExistencia = obtenerClienteJuridicoPorNombreComercial(command.nombreComercial())
                 .flatMap(existing -> Mono.<Void>error(new IllegalArgumentException(
                         "Ya existe un cliente jurídico con nombre comercial: " + command.nombreComercial())))
-                .switchIfEmpty(Mono.empty());
+                .switchIfEmpty(Mono.empty())
+                // Mover la operación a un Scheduler separado para no bloquear Netty
+                .subscribeOn(Schedulers.boundedElastic());
 
+        // 2️⃣ Validar que los representantes existan
         Mono<Void> validarRepresentantes = Flux.fromIterable(command.representantes())
                 .flatMap(representanteId ->
                         clienteNaturalService.obtenerClienteNaturalPorId(representanteId)
                                 .switchIfEmpty(Mono.error(new IllegalArgumentException(
                                         "Representante no encontrado con ID: " + representanteId)))
+                                .subscribeOn(Schedulers.boundedElastic()) // Scheduler por cada llamada a BD
                 )
                 .switchIfEmpty(Mono.error(new IllegalArgumentException(
-                        "La lista de represnetantes no es valida")))
+                        "La lista de representantes no es válida")))
                 .then();
 
+        // 3️⃣ Crear la entidad cliente jurídico
         ClienteJuridico clienteJuridico = new ClienteJuridico(
                 command.representantes(),
                 TipoClienteJuridico.valueOf(command.tipo()),
                 command.nombreComercial()
         );
 
+        // 4️⃣ Guardar en el repositorio y devolver el ID
         return Mono.when(validarExistencia, validarRepresentantes)
-                .then(clienteJuridicolRepositoryPort.save(clienteJuridico))
+                .then(clienteJuridicolRepositoryPort.save(clienteJuridico)
+                        .subscribeOn(Schedulers.boundedElastic()) // Scheduler para la operación de guardado
+                )
                 .map(ClienteJuridico::getId)
                 .doOnSuccess(savedId -> log.info("Cliente jurídico registrado exitosamente: {}", savedId))
                 .doOnError(ex -> log.error("Error registrando cliente jurídico {}", command.nombreComercial(), ex));
+
     }
 
     @Override

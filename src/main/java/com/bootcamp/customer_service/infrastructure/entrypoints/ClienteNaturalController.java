@@ -1,14 +1,20 @@
 package com.bootcamp.customer_service.infrastructure.entrypoints;
 
 import com.bootcamp.customer_service.application.mapper.CommandMapper;
+import com.bootcamp.customer_service.application.mapper.command.ClienteJuridicoCommand;
 import com.bootcamp.customer_service.application.mapper.command.ClienteNaturalCommand;
+import com.bootcamp.customer_service.domain.aggregate.ClienteJuridico;
+import com.bootcamp.customer_service.domain.aggregate.ClienteNatural;
+import com.bootcamp.customer_service.domain.enums.TipoClienteNatural;
 import com.bootcamp.customer_service.domain.service.ClienteJuridicoService;
 import com.bootcamp.customer_service.domain.service.ClienteNaturalService;
+import com.bootcamp.customer_service.server.ApiUtil;
 import com.bootcamp.customer_service.server.ClienteApi;
 import com.bootcamp.customer_service.server.models.ClienteJuridicoRequest;
 import com.bootcamp.customer_service.server.models.ClienteNaturalRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
@@ -16,6 +22,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.util.Optional;
 
 @RestController
 @Slf4j
@@ -42,7 +49,7 @@ public class ClienteNaturalController implements ClienteApi {
             String id,  final ServerWebExchange exchange) {
         log.debug("getById Request={}", id);
         return clienteJuridicoService.obtenerClienteJuridicoPorId(id)
-                .map(CommandMapper::toResponse)
+                .map(CommandMapper.CLIENTE_JURIDICO_TO_RESPONSE)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build())
                 .doOnError(ex -> log.error("Error fetching customer by id {}", id, ex));
@@ -58,7 +65,9 @@ public class ClienteNaturalController implements ClienteApi {
 
         return clienteJuridicoRequest
                 .flatMap(request -> {
-                    return clienteJuridicoService.actualizarClienteJuridico(id, CommandMapper.toCommand(request))
+                    ClienteJuridicoCommand command = CommandMapper.CLIENTE_JURIDICO_TO_COMMAND.apply(request);
+
+                    return clienteJuridicoService.actualizarClienteJuridico(id, command)
                             .then(Mono.just(ResponseEntity.noContent().<Void>build()));
                 })
                 .onErrorResume(ex -> {
@@ -79,7 +88,7 @@ public class ClienteNaturalController implements ClienteApi {
             String id,  final ServerWebExchange exchange) {
         log.debug("getById Request={}", id);
         return clienteNaturalService.obtenerClienteNaturalPorId(id)
-                .map(CommandMapper::toResponse)
+                .map(CommandMapper.CLIENTE_NATURAL_TO_RESPONSE)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build())
                 .doOnError(ex -> log.error("Error fetching customer by id {}", id, ex));
@@ -95,8 +104,9 @@ public class ClienteNaturalController implements ClienteApi {
 
         return clienteNaturalRequest
                 .flatMap(request ->
+
                         clienteNaturalService
-                                .actualizarClienteNatural(id, CommandMapper.toCommand(request))
+                                .actualizarClienteNatural(id, CommandMapper.CLIENTE_NATURAL_TO_COMMAND.apply(request))
                                 .then(Mono.just(ResponseEntity.noContent().<Void>build()))
                 )
                 .onErrorResume(ex -> {
@@ -116,7 +126,7 @@ public class ClienteNaturalController implements ClienteApi {
         log.debug("POST /cliente/juridico");
         return clienteJuridicoRequest
                 .flatMap(request -> {
-                    var command = CommandMapper.toCommand(request);
+                    var command = CommandMapper.CLIENTE_JURIDICO_TO_COMMAND.apply(request);
                     return clienteJuridicoService.registrarClienteJuridico(command)
                             .map(id -> ResponseEntity
                                     .created(URI.create("/api/v1/cliente/juridico/" + id))
@@ -139,7 +149,7 @@ public class ClienteNaturalController implements ClienteApi {
         log.debug("POST /cliente/natural");
         return clienteNaturalRequest
                 .flatMap(request -> {
-                    ClienteNaturalCommand command = CommandMapper.toCommand(request);
+                    ClienteNaturalCommand command = CommandMapper.CLIENTE_NATURAL_TO_COMMAND.apply(request);
                     return clienteNaturalService.registrarClienteNatural(command)
                             .map(id -> ResponseEntity
                                     .created(URI.create("/api/v1/cliente/natural/" + id))
@@ -162,7 +172,7 @@ public class ClienteNaturalController implements ClienteApi {
         log.debug("GET /cliente/juridico");
 
         Flux<ClienteJuridicoRequest> clientesFlux = clienteJuridicoService.obtenerTodosClientesJuridicos()
-                .map(CommandMapper::toResponse)
+                .map(CommandMapper.CLIENTE_JURIDICO_TO_RESPONSE)
                 .doOnError(ex -> log.error("Error mapping ClienteJuridico", ex));
 
         return clientesFlux.hasElements()
@@ -182,26 +192,35 @@ public class ClienteNaturalController implements ClienteApi {
 
     @Override
     public Mono<ResponseEntity<Flux<ClienteNaturalRequest>>> listarClientesNaturales(
+            String type,
             final ServerWebExchange exchange) {
 
-        log.debug("GET /cliente/natural");
+        log.debug("GET /cliente/natural, filter type: {}", type);
 
-        Flux<ClienteNaturalRequest> clientesFlux = clienteNaturalService.obtenerTodosClientesNaturales()
-                .map(CommandMapper::toResponse)
-                .doOnError(ex -> log.error("Error mapping ClienteJuridico", ex));
+        Optional<TipoClienteNatural> tipoOpt = Optional.ofNullable(type)
+                .flatMap(t -> {
+                    try {
+                        return Optional.of(TipoClienteNatural.valueOf(t));
+                    } catch (IllegalArgumentException ex) {
+                        log.warn("TipoClienteNatural inválido: {}", t, ex);
+                        return Optional.empty();
+                    }
+                });
+
+        Flux<ClienteNaturalRequest> clientesFlux = clienteNaturalService
+                .obtenerClientesNaturales(tipoOpt)
+                .map(CommandMapper.CLIENTE_NATURAL_TO_RESPONSE)
+                .doOnError(ex -> log.error("Error mapping ClienteNatural", ex))
+                .onErrorResume(ex -> {
+                    log.error("Error fetching clientes naturales", ex);
+                    return Flux.empty();
+                });
 
         return clientesFlux.hasElements()
-                .flatMap(hasElements -> {
-                    if (hasElements) {
-                        return Mono.just(ResponseEntity.ok(clientesFlux));
-                    } else {
-                        return Mono.just(ResponseEntity.noContent().<Flux<ClienteNaturalRequest>>build());
-                    }
-                })
-                .onErrorResume(ex -> {
-                    log.error("Error listing clientes juridicos", ex);
-                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .<Flux<ClienteNaturalRequest>>build());
-                });
+                .flatMap(hasElements -> hasElements
+                        ? Mono.just(ResponseEntity.ok(clientesFlux))
+                        : Mono.just(ResponseEntity.noContent().<Flux<ClienteNaturalRequest>>build()));
     }
+
+
 }
